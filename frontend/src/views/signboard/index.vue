@@ -19,10 +19,12 @@
     </div>
 
     <p class="status-legend">
-      <span v-for="item in statusSummary" :key="item.status" class="legend-item">
+      <span v-for="item in statusSummary" :key="item.status" class="legend-item" :class="{ 'ledger-item': item.status === '待核拨付' }">
         {{ item.status }}：{{ item.count }}
       </span>
     </p>
+
+    <p class="ledger-hint">治理工程提交批复后，会在此自动挂一条「待核拨付」台账，同一工程反复提交不叠加；核拨后转为「已核拨」。</p>
 
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
@@ -42,12 +44,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in rows" :key="String(row.id)">
+        <tr v-for="row in rows" :key="String(row.id)" :class="{ 'ledger-row': row.status === '待核拨付' || row.status === '已核拨' }">
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
-          <td>{{ row.status }}</td>
+          <td>
+            <span :class="{ 'ledger-tag': row.status === '待核拨付' }">{{ row.status }}</span>
+          </td>
           <td class="row-actions">
             <button
-              v-for="action in actions"
+              v-for="action in actionsFor(row)"
               :key="action"
               class="link"
               type="button"
@@ -55,6 +59,7 @@
             >
               {{ action }}
             </button>
+            <span v-if="!actionsFor(row).length" class="no-action">—</span>
           </td>
         </tr>
         <tr v-if="!rows.length">
@@ -83,8 +88,9 @@ import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('signboard')
 const columns = ["标识编号", "所属隐患点", "标识类别", "设置位置", "设置日期", "责任人", "更换日期", "标识状态"]
-const actions = ["确认设置", "提交更换", "登记撤除"]
-const statuses = ["待设置", "已设置", "待更换", "已撤除"]
+// 待核拨付台账是工程批复自动挂进来的，只走「登记核拨」；普通标识走自己的三段流转。
+const commonActions = ["确认设置", "提交更换", "登记撤除"]
+const statuses = ["待设置", "已设置", "待更换", "已撤除", "待核拨付", "已核拨"]
 const stats = [{"label": "待设置标识", "value": 0}, {"label": "待更换标识", "value": 0}, {"label": "已设置标识", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
@@ -98,6 +104,10 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+
+function actionsFor(row: EntryRow): string[] {
+  return String(row.status) === '待核拨付' ? ['登记核拨'] : commonActions
+}
 
 function resetFilters() {
   filters.value = {}
@@ -119,11 +129,11 @@ function runAction(action: string, row: EntryRow) {
     errorMessage.value = result.message
     return
   }
+  errorMessage.value = result.message
   reload()
 }
 
 function reload() {
-  errorMessage.value = ''
   try {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
@@ -135,3 +145,26 @@ function reload() {
 
 onMounted(reload)
 </script>
+
+<style scoped>
+.ledger-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend-item.ledger-item {
+  background: #fef3e2;
+  color: #b54708;
+}
+.ledger-row td {
+  background: #fffaf0;
+}
+.ledger-tag {
+  color: #b54708;
+  font-weight: 600;
+}
+.no-action {
+  color: var(--muted);
+  font-size: 13px;
+}
+</style>
