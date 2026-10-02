@@ -18,6 +18,31 @@ export type ModuleMeta = {
   actions: string[]
   actionTargets: Record<string, string>
   metrics: string[]
+  // 状态是否只能沿 statuses 逐段推进（true 时跳级动作一律拦下）
+  sequential?: boolean
+}
+
+// 治理工程查询条件：多条件叠加取交集，工程类型多选为组内任一命中
+export type ProjectQuery = {
+  code: string
+  types: string[]
+  contractor: string
+  amountMin: number | string | null
+  amountMax: number | string | null
+  dateStart: string
+  dateEnd: string
+  sort: '' | 'amount_asc' | 'amount_desc'
+}
+
+// 治理工程登记提交内容
+export type ProjectDraft = {
+  code: string
+  hazard: string
+  type: string
+  approvedDate: string
+  amount: number | string
+  contractor: string
+  finishDate: string
 }
 
 export type PageResult = {

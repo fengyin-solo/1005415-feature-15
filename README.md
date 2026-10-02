@@ -68,4 +68,14 @@ npm run build
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
+- 治理工程在通用列表之外走专属服务：`queryProjects` 支持工程编号/承建单位检索、
+  工程类型多选、批复金额与批复日期区间（条件叠加取交集）及批复金额排序；
+  `createProject` 负责登记，同一工程编号重复提交不叠加，批复金额填成负数或超出
+  允许区间按无效值退回，提交成功后会在警示标识台账追加一条「待核拨付」（待设置）。
+- 工程类型不维护独立字典，查询多选与登记表单统一通过 `projectTypeOptions()`
+  读取既有工程记录里的类型（同一套，不回炉）。
+- 治理工程状态按「待批复→已批复→施工中→已竣工」逐段推进，跳级动作在
+  `runAction` 里直接拦下（模块元数据 `sequential: true`）。
 - 想回到初始数据：清掉浏览器里 `geohazard-patrol:entries` 这一项，或调用 `resetModule(模块)`。
+- `frontend/scripts/logic-check.ts` 是脱离浏览器的业务逻辑自检（不依赖 esbuild），
+  用 `node --experimental-loader ./scripts/ts-loader.mjs ./scripts/logic-check.ts` 运行。
